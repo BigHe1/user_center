@@ -1,0 +1,11 @@
+spring:
+  application:
+    name: user_center
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/lin
+    username: root
+    password: root
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: false #自动从下划线转换到驼峰，默认开启
