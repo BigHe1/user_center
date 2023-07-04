@@ -14,6 +14,7 @@ target/
 .sts4-cache
 
 ### IntelliJ IDEA ###
+/src/test/
 .idea
 *.iws
 *.iml
@@ -35,5 +36,4 @@ build/
 /.mvn/wrapper/maven-wrapper.properties
 /mvnw.cmd
 /mvnw
-/src/test/
 /src/test/
