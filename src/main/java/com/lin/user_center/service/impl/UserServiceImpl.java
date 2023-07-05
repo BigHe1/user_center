@@ -5,10 +5,13 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.lin.user_center.service.UserService;
 import com.lin.user_center.model.domain.User;
 import com.lin.user_center.mapper.UserMapper;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
 import java.nio.charset.StandardCharsets;
 import java.util.Calendar;
 import java.util.Date;
@@ -21,8 +24,18 @@ import java.util.regex.Pattern;
 * @createDate 2023-07-03 13:04:24
 */
 @Service
+@Slf4j //日志注解
 public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     implements UserService {
+
+    // 盐
+    private static final  String SALT = "123";
+
+    //用户登录状态键
+    public static final  String USER_LOGIN_STATE = "userLoginState";
+
+    @Resource
+    UserMapper userMapper;
 
     @Override
     public long userRegister(String userAccount, String userPassword, String checkPassword) {
@@ -70,6 +83,58 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             return -1;
         }
         return user.getId();
+    }
+
+    @Override
+    public User userLogin(String userAccount, String userPassword, HttpServletRequest request) {
+
+        //1. 校验
+        if(StringUtils.isAllBlank(userAccount, userPassword)){
+            return null;
+        }
+        if(userAccount.length() < 4){
+            return null;
+        }
+        if(userPassword.length() < 8){
+            return null;
+        }
+
+        //校验特殊字符
+        String vailPattern = "[\n`~!@#$%^&*()+=|{}':;',\\[\\].<>/?~！@#￥%……&*()——+|{}‘；：”“’。， 、？]";//+号表示空格
+        Matcher matcher = Pattern.compile(vailPattern).matcher(userAccount);
+        if(matcher.find()){
+            return null;
+        }
+
+        // 2. 加密 查询是否存在
+        String encryptPassword = DigestUtils.md5DigestAsHex((SALT + userPassword).getBytes(StandardCharsets.UTF_8));
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("userAccount", userAccount);
+        queryWrapper.eq("userPassword", encryptPassword);
+        User user = userMapper.selectOne(queryWrapper);
+        //用户不存在
+        if(user == null){
+            log.info("user login failed, userAccount cannot match userPassword");
+            return null;
+        }
+
+        //3. 用户脱敏
+        User safetyUser = new User();
+        safetyUser.setId(user.getId());
+        safetyUser.setUsername(user.getUsername());
+        safetyUser.setUserAccount(user.getUserAccount());
+        safetyUser.setAvatarUrl(user.getAvatarUrl());
+        safetyUser.setGender(user.getGender());
+        safetyUser.setPhone(user.getPhone());
+        safetyUser.setEmail(user.getEmail());
+        safetyUser.setUserStatus(user.getUserStatus());
+        safetyUser.setCreateTime(user.getCreateTime());
+
+        //4. 记录用户登录状态
+        //session里attribute的是以map形式储存的
+        request.getSession().setAttribute(USER_LOGIN_STATE, safetyUser);
+
+        return safetyUser;
     }
 }
 

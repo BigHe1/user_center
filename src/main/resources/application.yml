@@ -9,3 +9,8 @@ spring:
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: false #自动从下划线转换到驼峰，默认开启
+  global-config:
+    db-config:
+      logic-delete-field: isDelete
+      logic-delete-value: 1
+      logic-not-delete-value: 0
