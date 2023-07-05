@@ -63,7 +63,7 @@ public class UserController {
     }
 
     @GetMapping("/findAll")
-    public List<User> findAll(@RequestBody String username){
+    public List<User> findAll(String username){
 
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
         if(StringUtils.isNotBlank(username)) {
