@@ -12,6 +12,10 @@ import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
+
+import static com.lin.user_center.constant.UserConstant.ADMIN_ROLE;
+import static com.lin.user_center.constant.UserConstant.USER_LOGIN_INFO;
 
 @RestController
 @RequestMapping("/user")
@@ -62,14 +66,53 @@ public class UserController {
         return userService.userLogin(userAccount, userPassword, request);
     }
 
+    /**
+     * 查询用户
+     * @param username
+     * @return
+     */
     @GetMapping("/findAll")
-    public List<User> findAll(String username){
+    public List<User> findAll(String username, HttpServletRequest request){
+
+        if(!isAdmin(request)){
+            return new ArrayList<>();
+        }
 
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
         if(StringUtils.isNotBlank(username)) {
             queryWrapper.like("username", username);
         }
-        return userService.list(queryWrapper);
+
+        List<User> userList = userService.list(queryWrapper);
+
+        //遍历userList每个元素，脱敏所有信息，再拼成一个完整的userList
+        return userList.stream().map(user -> userService.getSafytyUser(user)).collect(Collectors.toList());
+    }
+
+    /**
+     * 删除用户
+     * @param id
+     * @param request
+     * @return
+     */
+    @PostMapping("/delete")
+    public boolean deleteUser(@RequestBody Long id, HttpServletRequest request){
+
+        if(!isAdmin(request)){
+            return false;
+        }
+
+         if(id <= 0){
+            return false;
+        }
+        return userService.removeById(id);
+    }
+
+    private boolean isAdmin(HttpServletRequest request){
+
+        User userInfo = (User) request.getSession().getAttribute(USER_LOGIN_INFO);
+        //登录信息为空或者不是管理员就返回空数组
+        return userInfo != null && userInfo.getUserRole() == ADMIN_ROLE;
     }
 
 }
